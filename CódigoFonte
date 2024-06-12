@@ -1,0 +1,568 @@
+#include <iostream>
+#include <queue>
+#include <string>
+#include <list>
+#include <map>
+#include <unordered_map>
+#include <unordered_set>
+#include <vector>
+#include <algorithm>
+#include <ctime>
+
+// Estrutura para armazenar os atributos da habilidade
+struct Habilidade {
+    std::string nome;
+    int poder;
+
+    Habilidade(std::string n, int p) : nome(n), poder(p) {}
+    Habilidade() : nome(""), poder(0) {}
+};
+
+// Estrutura para armazenar um item
+struct Item {
+    std::string nome;
+    int quantidade;
+
+    Item(std::string n, int q) : nome(n), quantidade(q) {}
+    Item() : nome(""), quantidade(0) {}
+};
+
+// Nodo da árvore de habilidades
+struct NodoHabilidade {
+    Habilidade habilidade;
+    std::map<std::string, NodoHabilidade*> filhos;
+
+    NodoHabilidade(Habilidade h) : habilidade(h) {}
+};
+
+// Funções para gerenciar a árvore de habilidades
+void adicionarHabilidade(NodoHabilidade* raiz, Habilidade novaHabilidade, const std::string& habilidadePai) {
+    if (raiz->habilidade.nome == habilidadePai) {
+        raiz->filhos[novaHabilidade.nome] = new NodoHabilidade(novaHabilidade);
+    } else {
+        for (auto& filho : raiz->filhos) {
+            adicionarHabilidade(filho.second, novaHabilidade, habilidadePai);
+        }
+    }
+}
+
+NodoHabilidade* encontrarHabilidade(NodoHabilidade* raiz, const std::string& nomeHabilidade) {
+    if (raiz->habilidade.nome == nomeHabilidade) {
+        return raiz;
+    } else {
+        for (auto& filho : raiz->filhos) {
+            NodoHabilidade* encontrado = encontrarHabilidade(filho.second, nomeHabilidade);
+            if (encontrado) {
+                return encontrado;
+            }
+        }
+    }
+    return nullptr;
+}
+
+int compararHabilidades(NodoHabilidade* raiz, const std::string& hab1, const std::string& hab2) {
+    NodoHabilidade* nodo1 = encontrarHabilidade(raiz, hab1);
+    NodoHabilidade* nodo2 = encontrarHabilidade(raiz, hab2);
+    if (nodo1 && nodo2) {
+        if (nodo1->habilidade.poder > nodo2->habilidade.poder) {
+            return 1;
+        } else if (nodo1->habilidade.poder < nodo2->habilidade.poder) {
+            return -1;
+        } else {
+            return 0;
+        }
+    }
+    return 0; // Se uma das habilidades não for encontrada, considera empate
+}
+
+// Estrutura para armazenar os atributos do personagem
+struct Personagem {
+    std::string nome;
+    int nivel;
+    int saude;
+    int forca;
+    int defesa;
+    std::list<Habilidade> habilidades;
+    std::vector<Item> inventario;
+
+    Personagem(std::string n, int nv, int s, int f, int d)
+        : nome(n), nivel(nv), saude(s), forca(f), defesa(d) {}
+    Personagem() : nome(""), nivel(0), saude(0), forca(0), defesa(0) {}
+};
+
+// Estrutura para armazenar os atributos do monstro
+struct Monstro {
+    std::string nome;
+    int saude;
+    int forca;
+    int defesa;
+    std::list<Habilidade> habilidades;
+
+    Monstro(std::string n, int s, int f, int d)
+        : nome(n), saude(s), forca(f), defesa(d) {}
+    Monstro() : nome(""), saude(0), forca(0), defesa(0) {}
+};
+
+// Estrutura para armazenar um NPC
+struct NPC {
+    std::string nome;
+    std::string fala;
+
+    NPC(std::string n, std::string f) : nome(n), fala(f) {}
+    NPC() : nome(""), fala("") {}
+};
+
+// Estrutura para um nó do grafo (localidade)
+struct Localidade {
+    std::string nome;
+    std::vector<NPC> npcs;
+    std::vector<Item> itens;
+    std::vector<Monstro> monstros;
+
+    Localidade(std::string n) : nome(n) {}
+    Localidade() : nome("") {}
+};
+
+// Estrutura do grafo para representar o mundo do jogo
+struct GrafoMundo {
+    std::unordered_map<std::string, Localidade> localidades;
+    std::unordered_map<std::string, std::vector<std::string>> adjacencias;
+
+    void adicionarLocalidade(const Localidade& localidade) {
+        localidades[localidade.nome] = localidade;
+    }
+
+    void adicionarCaminho(const std::string& de, const std::string& para) {
+        adjacencias[de].push_back(para);
+        adjacencias[para].push_back(de);
+    }
+};
+
+// Funções para criação e manipulação de personagens e monstros
+void adicionarHabilidade(Personagem& personagem, const Habilidade& habilidade) {
+    personagem.habilidades.push_back(habilidade);
+    std::cout << "Habilidade adicionada ao personagem " << personagem.nome << ": " << habilidade.nome << std::endl;
+}
+
+void adicionarHabilidade(Monstro& monstro, const Habilidade& habilidade) {
+    monstro.habilidades.push_back(habilidade);
+    std::cout << "Habilidade adicionada ao monstro " << monstro.nome << ": " << habilidade.nome << std::endl;
+}
+
+Personagem criarGuerreiro() {
+    Personagem guerreiro("Guerreiro", 10, 150, 20, 10);
+    adicionarHabilidade(guerreiro, Habilidade("Ataque Forte", 20));
+    adicionarHabilidade(guerreiro, Habilidade("Defesa Forte", 10));
+    adicionarHabilidade(guerreiro, Habilidade("Golpe de Espada", 25));
+    adicionarHabilidade(guerreiro, Habilidade("Bloqueio de Escudo", 15));
+    return guerreiro;
+}
+
+Personagem criarMago() {
+    Personagem mago("Mago", 8, 100, 30, 5);
+    adicionarHabilidade(mago, Habilidade("Bola de Fogo", 30));
+    adicionarHabilidade(mago, Habilidade("Escudo Mágico", 10));
+    adicionarHabilidade(mago, Habilidade("Raio de Gelo", 25));
+    adicionarHabilidade(mago, Habilidade("Barreira de Mana", 15));
+    return mago;
+}
+
+Personagem criarArqueiro() {
+    Personagem arqueiro("Arqueiro", 7, 120, 25, 8);
+    adicionarHabilidade(arqueiro, Habilidade("Flecha Veloz", 20));
+    adicionarHabilidade(arqueiro, Habilidade("Esquiva Ágil", 10));
+    adicionarHabilidade(arqueiro, Habilidade("Tiro Preciso", 25));
+    adicionarHabilidade(arqueiro, Habilidade("Capa de Sombra", 15));
+    return arqueiro;
+}
+
+Personagem criarCurandeiro() {
+    Personagem curandeiro("Curandeiro", 6, 110, 10, 12);
+    adicionarHabilidade(curandeiro, Habilidade("Cura Leve", 20));
+    adicionarHabilidade(curandeiro, Habilidade("Escudo Sagrado", 10));
+    adicionarHabilidade(curandeiro, Habilidade("Cura Intensa", 25));
+    adicionarHabilidade(curandeiro, Habilidade("Proteção Divina", 15));
+    return curandeiro;
+}
+
+// Função para criar a árvore de habilidades
+NodoHabilidade* criarArvoreHabilidades() {
+    NodoHabilidade* raiz = new NodoHabilidade(Habilidade("Raiz", 0));
+
+    // Habilidades comuns
+    adicionarHabilidade(raiz, Habilidade("Ataque Forte", 20), "Raiz");
+    adicionarHabilidade(raiz, Habilidade("Defesa Forte", 10), "Raiz");
+    adicionarHabilidade(raiz, Habilidade("Golpe de Espada", 25), "Ataque Forte");
+    adicionarHabilidade(raiz, Habilidade("Bloqueio de Escudo", 15), "Defesa Forte");
+
+    // Habilidades do Mago
+    adicionarHabilidade(raiz, Habilidade("Bola de Fogo", 30), "Ataque Forte");
+    adicionarHabilidade(raiz, Habilidade("Escudo Mágico", 10), "Defesa Forte");
+    adicionarHabilidade(raiz, Habilidade("Raio de Gelo", 25), "Ataque Forte");
+    adicionarHabilidade(raiz, Habilidade("Barreira de Mana", 15), "Defesa Forte");
+
+    // Habilidades do Arqueiro
+    adicionarHabilidade(raiz, Habilidade("Flecha Veloz", 20), "Ataque Forte");
+    adicionarHabilidade(raiz, Habilidade("Esquiva Ágil", 10), "Defesa Forte");
+    adicionarHabilidade(raiz, Habilidade("Tiro Preciso", 25), "Ataque Forte");
+    adicionarHabilidade(raiz, Habilidade("Capa de Sombra", 15), "Defesa Forte");
+
+    // Habilidades do Curandeiro
+    adicionarHabilidade(raiz, Habilidade("Cura Leve", 20), "Ataque Forte");
+    adicionarHabilidade(raiz, Habilidade("Escudo Sagrado", 10), "Defesa Forte");
+    adicionarHabilidade(raiz, Habilidade("Cura Intensa", 25), "Ataque Forte");
+    adicionarHabilidade(raiz, Habilidade("Proteção Divina", 15), "Defesa Forte");
+
+    return raiz;
+}
+
+// Função para criar um bestiário com 5 monstros
+std::vector<Monstro> criarBestiario(NodoHabilidade* arvoreHabilidades) {
+    std::vector<Monstro> bestiario;
+
+    Monstro m1("Goblin", 50, 10, 5);
+    adicionarHabilidade(m1, Habilidade("Ataque Fraco", 10));
+    adicionarHabilidade(m1, Habilidade("Defesa Fraca", 5));
+    bestiario.push_back(m1);
+
+    Monstro m2("Orc", 100, 20, 10);
+    adicionarHabilidade(m2, Habilidade("Ataque Forte", 20));
+    adicionarHabilidade(m2, Habilidade("Defesa Forte", 10));
+    bestiario.push_back(m2);
+
+    Monstro m3("Dragão", 200, 50, 30);
+    adicionarHabilidade(m3, Habilidade("Fogo de Dragão", 50));
+    adicionarHabilidade(m3, Habilidade("Escamas Resistentes", 30));
+    bestiario.push_back(m3);
+
+    Monstro m4("Troll", 150, 30, 20);
+    adicionarHabilidade(m4, Habilidade("Ataque Médio", 30));
+    adicionarHabilidade(m4, Habilidade("Defesa Média", 20));
+    bestiario.push_back(m4);
+
+    Monstro m5("Esqueleto", 80, 15, 10);
+    adicionarHabilidade(m5, Habilidade("Golpe de Ossos", 15));
+    adicionarHabilidade(m5, Habilidade("Proteção Óssea", 10));
+    bestiario.push_back(m5);
+
+    return bestiario;
+}
+
+// Funções para gerenciar as tabelas hash de personagens e monstros
+std::unordered_map<std::string, Personagem> tabelaPersonagens;
+std::unordered_map<std::string, Monstro> tabelaMonstros;
+
+void adicionarPersonagemTabela(const Personagem& personagem) {
+    tabelaPersonagens[personagem.nome] = personagem;
+    std::cout << "Personagem adicionado à tabela: " << personagem.nome << std::endl;
+}
+
+void removerPersonagemTabela(const std::string& nome) {
+    if (tabelaPersonagens.erase(nome)) {
+        std::cout << "Personagem removido da tabela: " << nome << std::endl;
+    } else {
+        std::cout << "Personagem não encontrado na tabela: " << nome << std::endl;
+    }
+}
+
+Personagem* acessarPersonagemTabela(const std::string& nome) {
+    auto it = tabelaPersonagens.find(nome);
+    if (it != tabelaPersonagens.end()) {
+        return &it->second;
+    } else {
+        std::cout << "Personagem não encontrado na tabela: " << nome << std::endl;
+        return nullptr;
+    }
+}
+
+void adicionarMonstroTabela(const Monstro& monstro) {
+    tabelaMonstros[monstro.nome] = monstro;
+    std::cout << "Monstro adicionado à tabela: " << monstro.nome << std::endl;
+}
+
+void removerMonstroTabela(const std::string& nome) {
+    if (tabelaMonstros.erase(nome)) {
+        std::cout << "Monstro removido da tabela: " << nome << std::endl;
+    } else {
+        std::cout << "Monstro não encontrado na tabela: " << nome << std::endl;
+    }
+}
+
+Monstro* acessarMonstroTabela(const std::string& nome) {
+    auto it = tabelaMonstros.find(nome);
+    if (it != tabelaMonstros.end()) {
+        return &it->second;
+    } else {
+        std::cout << "Monstro não encontrado na tabela: " << nome << std::endl;
+        return nullptr;
+    }
+}
+
+// Função para iniciar o combate
+void iniciarCombate(Personagem& personagem, Monstro& monstro) {
+    std::cout << "Iniciando combate entre " << personagem.nome << " e " << monstro.nome << "!\n";
+
+    while (personagem.saude > 0 && monstro.saude > 0) {
+        // Exibir status dos combatentes
+        std::cout << personagem.nome << " - Saúde: " << personagem.saude << "\n";
+        std::cout << monstro.nome << " - Saúde: " << monstro.saude << "\n";
+
+        // Turno do jogador
+        std::cout << "Escolha sua ação: 1. Atacar 2. Curar-se\n";
+        int acao;
+        std::cin >> acao;
+
+        if (acao == 1) {
+            std::cout << "Escolha o ataque:\n";
+            int i = 1;
+            for (const auto& habilidade : personagem.habilidades) {
+                std::cout << i << ". " << habilidade.nome << " (Poder: " << habilidade.poder << ")\n";
+                i++;
+            }
+            int escolha;
+            std::cin >> escolha;
+
+            auto it = personagem.habilidades.begin();
+            std::advance(it, escolha - 1);
+            Habilidade ataqueEscolhido = *it;
+
+            int dano = ataqueEscolhido.poder - monstro.defesa;
+            if (dano < 0) dano = 0;
+            monstro.saude -= dano;
+            std::cout << personagem.nome << " usa " << ataqueEscolhido.nome << " causando " << dano << " de dano!\n";
+        } else if (acao == 2) {
+            // Jogador se cura
+            int cura = 20;
+            personagem.saude += cura;
+            std::cout << personagem.nome << " se cura em " << cura << " pontos de saúde!\n";
+        }
+
+        if (monstro.saude <= 0) break;
+
+        // Turno do monstro
+        int dano = monstro.forca - personagem.defesa;
+        if (dano < 0) dano = 0;
+        personagem.saude -= dano;
+        std::cout << monstro.nome << " ataca " << personagem.nome << " causando " << dano << " de dano!\n";
+
+        if (personagem.saude <= 0) break;
+    }
+
+    if (personagem.saude > 0) {
+        std::cout << personagem.nome << " venceu o combate!\n";
+    } else {
+        std::cout << personagem.nome << " foi derrotado!\n";
+    }
+}
+
+// Funções para explorar o mundo
+void explorarLocalidade(GrafoMundo& mundo, Personagem& personagem, const std::string& nomeLocalidade) {
+    if (mundo.localidades.find(nomeLocalidade) != mundo.localidades.end()) {
+        Localidade& local = mundo.localidades[nomeLocalidade];
+        std::cout << "Você chegou em " << local.nome << ".\n";
+
+        // Garantir que alguma ação aconteça
+        srand(time(0));
+        bool acaoRealizada = false;
+
+        for (const auto& npc : local.npcs) {
+            if (rand() % 2 == 0) {
+                std::cout << "NPC " << npc.nome << " diz: " << npc.fala << "\n";
+                acaoRealizada = true;
+            }
+        }
+
+        for (const auto& item : local.itens) {
+            if (rand() % 2 == 0) {
+                std::cout << "Você encontrou " << item.quantidade << "x " << item.nome << ".\n";
+                personagem.inventario.push_back(item);
+                acaoRealizada = true;
+            }
+        }
+
+        for (auto& monstro : local.monstros) {
+            if (rand() % 2 == 0) {
+                std::cout << "Você encontrou um " << monstro.nome << "!\n";
+                iniciarCombate(personagem, monstro);
+                if (personagem.saude <= 0) {
+                    std::cout << "Você foi derrotado. Fim do jogo.\n";
+                    return;
+                }
+                acaoRealizada = true;
+            }
+        }
+
+        // Caso nenhuma ação tenha sido realizada, força um encontro com um NPC ou monstro
+        if (!acaoRealizada) {
+            if (!local.npcs.empty()) {
+                const auto& npc = local.npcs[0];
+                std::cout << "NPC " << npc.nome << " diz: " << npc.fala << "\n";
+            } else if (!local.monstros.empty()) {
+                auto& monstro = local.monstros[0];
+                std::cout << "Você encontrou um " << monstro.nome << "!\n";
+                iniciarCombate(personagem, monstro);
+                if (personagem.saude <= 0) {
+                    std::cout << "Você foi derrotado. Fim do jogo.\n";
+                    return;
+                }
+            }
+        }
+    } else {
+        std::cout << "Localidade " << nomeLocalidade << " não encontrada no mundo.\n";
+    }
+}
+
+void moverParaLocalidade(GrafoMundo& mundo, Personagem& personagem, const std::string& de, const std::string& para) {
+    if (mundo.adjacencias.find(de) != mundo.adjacencias.end()) {
+        const auto& adj = mundo.adjacencias[de];
+        if (std::find(adj.begin(), adj.end(), para) != adj.end()) {
+            explorarLocalidade(mundo, personagem, para);
+        } else {
+            std::cout << "Não há caminho direto de " << de << " para " << para << ".\n";
+        }
+    } else {
+        std::cout << "Localidade " << de << " não encontrada no mundo.\n";
+    }
+}
+
+void verificarInventario(Personagem& personagem) {
+    std::cout << "Inventário de " << personagem.nome << ":\n";
+    for (const auto& item : personagem.inventario) {
+        std::cout << item.nome << " x" << item.quantidade << "\n";
+    }
+}
+
+// Função para exibir o menu
+void exibirMenu() {
+    std::cout << "\nMenu Inicial:\n";
+    std::cout << "1. Criar Personagem\n";
+    std::cout << "2. Listar Personagens\n";
+    std::cout << "3. Remover Personagem\n";
+    std::cout << "4. Acessar Personagem\n";
+    std::cout << "5. Explorar Mundo\n";
+    std::cout << "6. Verificar Inventário\n";
+    std::cout << "0. Sair\n";
+}
+
+// Função principal
+int main() {
+    NodoHabilidade* arvoreHabilidades = criarArvoreHabilidades();
+
+    GrafoMundo mundo;
+    std::vector<Monstro> bestiario = criarBestiario(arvoreHabilidades);
+    for (const auto& monstro : bestiario) {
+        adicionarMonstroTabela(monstro);
+    }
+
+    // Criando localidades e caminhos para o mundo do jogo
+    Localidade aldeia("Aldeia");
+    aldeia.npcs.push_back(NPC("Aldeão", "Bem-vindo à nossa aldeia!"));
+    aldeia.itens.push_back(Item("Poção de Cura", 3));
+    mundo.adicionarLocalidade(aldeia);
+
+    Localidade floresta("Floresta");
+    floresta.monstros.push_back(tabelaMonstros["Goblin"]);
+    mundo.adicionarLocalidade(floresta);
+
+    Localidade montanha("Montanha");
+    montanha.monstros.push_back(tabelaMonstros["Troll"]);
+    mundo.adicionarLocalidade(montanha);
+
+    Localidade caverna("Caverna");
+    caverna.monstros.push_back(tabelaMonstros["Esqueleto"]);
+    mundo.adicionarLocalidade(caverna);
+    
+    mundo.adicionarCaminho("Aldeia", "Floresta");
+    mundo.adicionarCaminho("Floresta", "Montanha");
+    mundo.adicionarCaminho("Montanha", "Caverna");
+
+    bool sair = false;
+    Personagem personagem;
+    while (!sair) {
+        exibirMenu();
+        int opcao;
+        std::cout << "Escolha uma opção: ";
+        std::cin >> opcao;
+
+        switch (opcao) {
+            case 1: {
+                int tipo;
+                std::cout << "Escolha o tipo de personagem (1. Guerreiro, 2. Mago, 3. Arqueiro, 4. Curandeiro): ";
+                std::cin >> tipo;
+
+                switch (tipo) {
+                    case 1: personagem = criarGuerreiro(); break;
+                    case 2: personagem = criarMago(); break;
+                    case 3: personagem = criarArqueiro(); break;
+                    case 4: personagem = criarCurandeiro(); break;
+                    default: std::cout << "Tipo inválido!\n"; continue;
+                }
+
+                adicionarPersonagemTabela(personagem);
+                break;
+            }
+            case 2: {
+                std::cout << "Personagens:\n";
+                for (const auto& par : tabelaPersonagens) {
+                    std::cout << par.second.nome << " (Nível: " << par.second.nivel << ")\n";
+                }
+                break;
+            }
+            case 3: {
+                std::string nome;
+                std::cout << "Digite o nome do personagem a ser removido: ";
+                std::cin >> nome;
+                removerPersonagemTabela(nome);
+                break;
+            }
+            case 4: {
+                std::string nome;
+                std::cout << "Digite o nome do personagem: ";
+                std::cin >> nome;
+                Personagem* p = acessarPersonagemTabela(nome);
+                if (p) {
+                    std::cout << "Nome: " << p->nome << ", Nível: " << p->nivel << ", Saúde: " << p->saude << ", Força: " << p->forca << ", Defesa: " << p->defesa << "\n";
+                    std::cout << "Habilidades:\n";
+                    for (const auto& habilidade : p->habilidades) {
+                        std::cout << "  " << habilidade.nome << " (Poder: " << habilidade.poder << ")\n";
+                    }
+                }
+                break;
+            }
+            case 5: {
+                std::string nome;
+                std::cout << "Digite o nome da localidade inicial: ";
+                std::cin >> nome;
+                explorarLocalidade(mundo, personagem, nome);
+
+                char continuar;
+                do {
+                    std::string de, para;
+                    std::cout << "Mover-se de: ";
+                    std::cin >> de;
+                    std::cout << "Para: ";
+                    std::cin >> para;
+                    moverParaLocalidade(mundo, personagem, de, para);
+                    std::cout << "Deseja continuar explorando? (s/n): ";
+                    std::cin >> continuar;
+                } while (continuar == 's');
+                break;
+            }
+            case 6: {
+                verificarInventario(personagem);
+                break;
+            }
+            case 0: {
+                sair = true;
+                break;
+            }
+            default: {
+                std::cout << "Opção inválida!\n";
+                break;
+            }
+        }
+    }
+
+    delete arvoreHabilidades;
+    return 0;
+}
